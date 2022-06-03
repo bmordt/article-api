@@ -80,6 +80,7 @@ func (a *ArticleService) CreateArticle(w http.ResponseWriter, r *http.Request) {
 func (a *ArticleService) GetArticle(w http.ResponseWriter, r *http.Request) {
 	a.Logger.Infof("Inside GetArticle function")
 
+	//Make sure path params are okay
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -109,6 +110,49 @@ func (a *ArticleService) GetArticle(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//GetArticlesByTagAndDate gets the article from DB that belongs to the ID provided in the path parameter
+func (a *ArticleService) GetArticlesByTagAndDate(w http.ResponseWriter, r *http.Request) {
+	a.Logger.Infof("Inside GetArticlesByTagAndDate function")
+
+	//Make sure path params are okay
+	vars := mux.Vars(r)
+	tagName, ok := vars["tagName"]
+	if !ok {
+		a.Logger.Warnf("GetArticlesByTagAndDate :: tagName is not present in the url path %s", r.URL.Path)
+		apiError.ApiError(w, http.StatusBadRequest, "tagName path parameter is not provided")
+		return
+	}
+	date, ok := vars["date"]
+	if !ok {
+		a.Logger.Warnf("GetArticlesByTagAndDate :: date is not present in the url path %s", r.URL.Path)
+		apiError.ApiError(w, http.StatusBadRequest, "date path parameter is not provided")
+		return
+	}
+
+	//Validate the date
+	_, err := time.Parse(expectedDateFormatString, date)
+	if err != nil {
+		a.Logger.Errorf("CreateArticle :: Error parsing param date: %v", err)
+		apiError.ApiError(w, http.StatusBadRequest, fmt.Sprintf("Path parameter date is not in expected format \"%s\"", expectedDateFormatString))
+		return
+	}
+
+	//Check to see the tag and date have results
+	articles, err := a.DBClient.GetArticleRowByTagAndDate(tagName, date)
+	if err != nil {
+		a.Logger.Errorf("GetArticlesByTagAndDate :: Error getting articles %s %s from DB : %v", tagName, date, err)
+		apiError.ApiError(w, http.StatusInternalServerError, "Internal server error getting article")
+		return
+	}
+
+	//Return the correct info
+	resp := mapToTagGroupArticleResp(*articles, tagName)
+
+	a.Logger.Infof("GetArticlesByTagAndDate :: Successfully found articles and mapped to response: %+v", resp)
+	middleware.ModelResponse(w, 200, resp)
+	return
+}
+
 func mapCreateArticleReqToDBArticle(req *models.CreateArticleReq, reqDate time.Time) *models.Article {
 	return &models.Article{
 		Title: req.Title,
@@ -126,4 +170,43 @@ func mapToArticleResponse(dbArticle *models.Article) *models.ArticleResp {
 		Tags:  dbArticle.Tags,
 		Date:  dbArticle.Date.Format(expectedDateFormatString),
 	}
+}
+
+//mapToTagGroupArticleResp returns the desired response
+//Distinct article IDs
+//Distinct article tags - needs to return the last 10 entered
+//Count of articles
+func mapToTagGroupArticleResp(articles []models.Article, tagName string) *models.GroupArticleResp {
+	//related_tags field contains a list of tags that are on the articles that the current tag is on for the same day
+	resp := &models.GroupArticleResp{
+		Tag:   tagName,
+		Count: len(articles),
+	}
+
+	ids := []string{}
+	relatedTagsCount := make(map[string]int)
+
+	//loop through the article to get each ID whilst also appending the tagName to a map to get distinct tag values
+	//We know the query returns the articles in createdDate desc order. So the newest articles should be first
+	for _, article := range articles {
+		if len(ids) < 10 {
+			ids = append(ids, article.ID)
+		}
+
+		for _, tag := range article.Tags {
+			relatedTagsCount[tag]++
+		}
+	}
+	resp.Articles = ids
+
+	//For each unique value append to the tag Name array
+	relatedTagsNames := make([]string, len(relatedTagsCount))
+	i := 0
+	for name := range relatedTagsCount {
+		relatedTagsNames[i] = name
+		i++
+	}
+	resp.RelatedTags = relatedTagsNames
+
+	return resp
 }

@@ -25,6 +25,9 @@ var _ DBClient = &DBClientMock{}
 // 			GetArticleRowByIDFunc: func(findID int) (*models.Article, error) {
 // 				panic("mock out the GetArticleRowByID method")
 // 			},
+// 			GetArticleRowByTagAndDateFunc: func(tag string, date string) (*[]models.Article, error) {
+// 				panic("mock out the GetArticleRowByTagAndDate method")
+// 			},
 // 		}
 //
 // 		// use mockedDBClient in code that requires DBClient
@@ -37,6 +40,9 @@ type DBClientMock struct {
 
 	// GetArticleRowByIDFunc mocks the GetArticleRowByID method.
 	GetArticleRowByIDFunc func(findID int) (*models.Article, error)
+
+	// GetArticleRowByTagAndDateFunc mocks the GetArticleRowByTagAndDate method.
+	GetArticleRowByTagAndDateFunc func(tag string, date string) (*[]models.Article, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -56,9 +62,17 @@ type DBClientMock struct {
 			// FindID is the findID argument value.
 			FindID int
 		}
+		// GetArticleRowByTagAndDate holds details about calls to the GetArticleRowByTagAndDate method.
+		GetArticleRowByTagAndDate []struct {
+			// Tag is the tag argument value.
+			Tag string
+			// Date is the date argument value.
+			Date string
+		}
 	}
-	lockCreateArticleRow  sync.RWMutex
-	lockGetArticleRowByID sync.RWMutex
+	lockCreateArticleRow          sync.RWMutex
+	lockGetArticleRowByID         sync.RWMutex
+	lockGetArticleRowByTagAndDate sync.RWMutex
 }
 
 // CreateArticleRow calls CreateArticleRowFunc.
@@ -132,5 +146,40 @@ func (mock *DBClientMock) GetArticleRowByIDCalls() []struct {
 	mock.lockGetArticleRowByID.RLock()
 	calls = mock.calls.GetArticleRowByID
 	mock.lockGetArticleRowByID.RUnlock()
+	return calls
+}
+
+// GetArticleRowByTagAndDate calls GetArticleRowByTagAndDateFunc.
+func (mock *DBClientMock) GetArticleRowByTagAndDate(tag string, date string) (*[]models.Article, error) {
+	if mock.GetArticleRowByTagAndDateFunc == nil {
+		panic("DBClientMock.GetArticleRowByTagAndDateFunc: method is nil but DBClient.GetArticleRowByTagAndDate was just called")
+	}
+	callInfo := struct {
+		Tag  string
+		Date string
+	}{
+		Tag:  tag,
+		Date: date,
+	}
+	mock.lockGetArticleRowByTagAndDate.Lock()
+	mock.calls.GetArticleRowByTagAndDate = append(mock.calls.GetArticleRowByTagAndDate, callInfo)
+	mock.lockGetArticleRowByTagAndDate.Unlock()
+	return mock.GetArticleRowByTagAndDateFunc(tag, date)
+}
+
+// GetArticleRowByTagAndDateCalls gets all the calls that were made to GetArticleRowByTagAndDate.
+// Check the length with:
+//     len(mockedDBClient.GetArticleRowByTagAndDateCalls())
+func (mock *DBClientMock) GetArticleRowByTagAndDateCalls() []struct {
+	Tag  string
+	Date string
+} {
+	var calls []struct {
+		Tag  string
+		Date string
+	}
+	mock.lockGetArticleRowByTagAndDate.RLock()
+	calls = mock.calls.GetArticleRowByTagAndDate
+	mock.lockGetArticleRowByTagAndDate.RUnlock()
 	return calls
 }

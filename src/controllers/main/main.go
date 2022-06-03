@@ -44,12 +44,13 @@ func main() {
 	// -- article routes
 	muxrouter.HandleFunc("/articles", articleService.CreateArticle).Methods("POST")
 	muxrouter.HandleFunc("/articles/{id}", articleService.GetArticle).Methods("GET")
+	muxrouter.HandleFunc("/tags/{tagName}/{date}", articleService.GetArticlesByTagAndDate).Methods("GET")
 
-	//Router end, allowing Cross routing from this router
+	//Router end
 	logger.Fatalf("%v", http.ListenAndServe(":"+portNum, muxrouter))
 }
 
-//initEnvVariables run during init function to get env variables
+//initEnvVariables gets required env variables
 func initEnvVariables() {
 	portNum = GetAPIPort()
 	if strings.Compare(portNum, "") == 0 {

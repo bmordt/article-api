@@ -26,7 +26,7 @@ var (
 
 func TestCreateArticle(t *testing.T) {
 	t.Run("Given a valid create request, a new article is stored in the DB", func(t *testing.T) {
-		dbMock := newDbClientMock(false, false)
+		dbMock := newDbClientMock(false, false, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -58,7 +58,7 @@ func TestCreateArticle(t *testing.T) {
 		})
 	})
 	t.Run("Given an invalid create request, the correct resp is returned with 400", func(t *testing.T) {
-		dbMock := newDbClientMock(false, false)
+		dbMock := newDbClientMock(false, false, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -92,7 +92,7 @@ func TestCreateArticle(t *testing.T) {
 		})
 	})
 	t.Run("Given a valid create request, with an error during the insert we respond with 500", func(t *testing.T) {
-		dbMock := newDbClientMock(true, false)
+		dbMock := newDbClientMock(true, false, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -136,7 +136,7 @@ func TestGetArticle(t *testing.T) {
 	testIDInt := 111111
 	testIDString := strconv.Itoa(testIDInt)
 	t.Run("Given a valid get request, an article is returned from the DB", func(t *testing.T) {
-		dbMock := newDbClientMock(false, false)
+		dbMock := newDbClientMock(false, false, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -158,7 +158,7 @@ func TestGetArticle(t *testing.T) {
 		})
 	})
 	t.Run("Given an invalid get request, 400 and a message is returned", func(t *testing.T) {
-		dbMock := newDbClientMock(false, false)
+		dbMock := newDbClientMock(false, false, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -190,7 +190,7 @@ func TestGetArticle(t *testing.T) {
 		})
 	})
 	t.Run("Given a valid get request, with an error during the get from DB we respond with 500", func(t *testing.T) {
-		dbMock := newDbClientMock(false, true)
+		dbMock := newDbClientMock(false, true, false)
 
 		a := NewArticleService(dbMock, testLogger)
 
@@ -224,7 +224,51 @@ func TestGetArticle(t *testing.T) {
 	})
 }
 
-func newDbClientMock(createErr, getErr bool) *database.DBClientMock {
+func TestGetArticlesByTagAndDate(t *testing.T) {
+	testTagName := "TestTag2"
+	testDate := "2022-01-01"
+	t.Run("Given a valid tagName and date, GetArticlesByTagAndDate can return the correct count, related_tags and articleIDs", func(t *testing.T) {
+		dbMock := newDbClientMock(false, false, false)
+
+		a := NewArticleService(dbMock, testLogger)
+
+		testIncomingReq := &http.Request{
+			URL: &url.URL{
+				Path: "blah",
+			},
+		}
+		pathVars := make(map[string]string)
+		pathVars["tagName"] = testTagName
+		pathVars["date"] = testDate
+		testIncomingReq = mux.SetURLVars(testIncomingReq, pathVars)
+		w := httptest.NewRecorder()
+
+		a.GetArticlesByTagAndDate(w, testIncomingReq)
+
+		resp := w.Result()
+
+		t.Run("Response code is 200", func(t *testing.T) {
+			assert.Equal(t, 200, resp.StatusCode)
+		})
+		t.Run("Response contains correct numbers", func(t *testing.T) {
+			actualResp := &models.GroupArticleResp{}
+			err := json.Unmarshal(w.Body.Bytes(), &actualResp)
+			assert.NoError(t, err)
+
+			assert.Equal(t, testTagName, actualResp.Tag)
+			assert.Equal(t, 3, actualResp.Count)
+			assert.Equal(t, 3, len(actualResp.Articles))
+			assert.Equal(t, 5, len(actualResp.RelatedTags))
+		})
+		t.Run("GetArticleRowByTagAndDate was called once with the correct info", func(t *testing.T) {
+			assert.Equal(t, 1, len(dbMock.GetArticleRowByTagAndDateCalls()))
+			assert.Equal(t, testTagName, dbMock.GetArticleRowByTagAndDateCalls()[0].Tag)
+			assert.Equal(t, testDate, dbMock.GetArticleRowByTagAndDateCalls()[0].Date)
+		})
+	})
+}
+
+func newDbClientMock(createErr, getErr, getTagErr bool) *database.DBClientMock {
 	return &database.DBClientMock{
 		CreateArticleRowFunc: func(title, body string, date time.Time, tags []string) (int, error) {
 			if createErr {
@@ -238,6 +282,25 @@ func newDbClientMock(createErr, getErr bool) *database.DBClientMock {
 			}
 			return &models.Article{
 				ID: "1",
+			}, nil
+		},
+		GetArticleRowByTagAndDateFunc: func(tag, date string) (*[]models.Article, error) {
+			if getErr {
+				return &[]models.Article{}, errors.New("Get Error")
+			}
+			return &[]models.Article{
+				models.Article{
+					ID:   "1",
+					Tags: []string{"TestTag1", "TestTag2", "TestTag3"},
+				},
+				models.Article{
+					ID:   "2",
+					Tags: []string{"TestTag2", "TestTag3"},
+				},
+				models.Article{
+					ID:   "3",
+					Tags: []string{"TestTag2", "TestTag4", "TestTag5"},
+				},
 			}, nil
 		},
 	}

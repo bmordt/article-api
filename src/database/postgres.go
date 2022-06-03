@@ -19,6 +19,7 @@ import (
 type DBClient interface {
 	CreateArticleRow(title, body string, date time.Time, tags []string) (int, error)
 	GetArticleRowByID(findID int) (*models.Article, error)
+	GetArticleRowByTagAndDate(tag, date string) (*[]models.Article, error)
 }
 
 type ArticleDBClient struct {
@@ -59,7 +60,7 @@ func (d *ArticleDBClient) CreateArticleRow(title, body string, date time.Time, t
 
 //GetArticleRowByID queries db for article by its ID
 func (d *ArticleDBClient) GetArticleRowByID(findID int) (*models.Article, error) {
-	query := fmt.Sprintf(`SELECT * FROM ARTICLES WHERE ID=$1`)
+	query := fmt.Sprintf(`SELECT ID, TITLE, ARTICLE_DATE, BODY, TAGS FROM ARTICLES WHERE ID=$1`)
 	d.Logger.Infof("GetArticleRowByID :: %s ID: %d", query, findID)
 
 	article := &models.Article{}
@@ -72,4 +73,36 @@ func (d *ArticleDBClient) GetArticleRowByID(findID int) (*models.Article, error)
 		return nil, err
 	}
 	return article, nil
+}
+
+//GetArticleRowByID queries db for article by its ID
+func (d *ArticleDBClient) GetArticleRowByTagAndDate(tag, date string) (*[]models.Article, error) {
+	query := fmt.Sprintf(`SELECT ID, TITLE, ARTICLE_DATE, BODY, TAGS FROM ARTICLES WHERE TAGS && ARRAY[$1] and article_date = $2 order by CREATEDDATE desc`)
+
+	d.Logger.Infof("GetArticleRowByTagAndDate :: %s tag %s date %s", query, tag, date)
+
+	rows, err := d.DB.Query(query, tag, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	articles := []models.Article{}
+	for rows.Next() {
+		article := models.Article{}
+		err = rows.Scan(&article.ID, &article.Title, &article.Date, &article.Body, pq.Array(&article.Tags))
+		if err != nil {
+			return nil, err
+		}
+
+		articles = append(articles, article)
+	}
+
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return &articles, nil
 }
