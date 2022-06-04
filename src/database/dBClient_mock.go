@@ -22,6 +22,9 @@ var _ DBClient = &DBClientMock{}
 // 			CreateArticleRowFunc: func(title string, body string, date time.Time, tags []string) (int, error) {
 // 				panic("mock out the CreateArticleRow method")
 // 			},
+// 			DeleteArticleByIDFunc: func(id int) error {
+// 				panic("mock out the DeleteArticleByID method")
+// 			},
 // 			GetArticleRowByIDFunc: func(findID int) (*models.Article, error) {
 // 				panic("mock out the GetArticleRowByID method")
 // 			},
@@ -37,6 +40,9 @@ var _ DBClient = &DBClientMock{}
 type DBClientMock struct {
 	// CreateArticleRowFunc mocks the CreateArticleRow method.
 	CreateArticleRowFunc func(title string, body string, date time.Time, tags []string) (int, error)
+
+	// DeleteArticleByIDFunc mocks the DeleteArticleByID method.
+	DeleteArticleByIDFunc func(id int) error
 
 	// GetArticleRowByIDFunc mocks the GetArticleRowByID method.
 	GetArticleRowByIDFunc func(findID int) (*models.Article, error)
@@ -57,6 +63,11 @@ type DBClientMock struct {
 			// Tags is the tags argument value.
 			Tags []string
 		}
+		// DeleteArticleByID holds details about calls to the DeleteArticleByID method.
+		DeleteArticleByID []struct {
+			// ID is the id argument value.
+			ID int
+		}
 		// GetArticleRowByID holds details about calls to the GetArticleRowByID method.
 		GetArticleRowByID []struct {
 			// FindID is the findID argument value.
@@ -71,6 +82,7 @@ type DBClientMock struct {
 		}
 	}
 	lockCreateArticleRow          sync.RWMutex
+	lockDeleteArticleByID         sync.RWMutex
 	lockGetArticleRowByID         sync.RWMutex
 	lockGetArticleRowByTagAndDate sync.RWMutex
 }
@@ -115,6 +127,37 @@ func (mock *DBClientMock) CreateArticleRowCalls() []struct {
 	mock.lockCreateArticleRow.RLock()
 	calls = mock.calls.CreateArticleRow
 	mock.lockCreateArticleRow.RUnlock()
+	return calls
+}
+
+// DeleteArticleByID calls DeleteArticleByIDFunc.
+func (mock *DBClientMock) DeleteArticleByID(id int) error {
+	if mock.DeleteArticleByIDFunc == nil {
+		panic("DBClientMock.DeleteArticleByIDFunc: method is nil but DBClient.DeleteArticleByID was just called")
+	}
+	callInfo := struct {
+		ID int
+	}{
+		ID: id,
+	}
+	mock.lockDeleteArticleByID.Lock()
+	mock.calls.DeleteArticleByID = append(mock.calls.DeleteArticleByID, callInfo)
+	mock.lockDeleteArticleByID.Unlock()
+	return mock.DeleteArticleByIDFunc(id)
+}
+
+// DeleteArticleByIDCalls gets all the calls that were made to DeleteArticleByID.
+// Check the length with:
+//     len(mockedDBClient.DeleteArticleByIDCalls())
+func (mock *DBClientMock) DeleteArticleByIDCalls() []struct {
+	ID int
+} {
+	var calls []struct {
+		ID int
+	}
+	mock.lockDeleteArticleByID.RLock()
+	calls = mock.calls.DeleteArticleByID
+	mock.lockDeleteArticleByID.RUnlock()
 	return calls
 }
 

@@ -20,6 +20,7 @@ type DBClient interface {
 	CreateArticleRow(title, body string, date time.Time, tags []string) (int, error)
 	GetArticleRowByID(findID int) (*models.Article, error)
 	GetArticleRowByTagAndDate(tag, date string) (*[]models.Article, error)
+	DeleteArticleByID(id int) error
 }
 
 type ArticleDBClient struct {
@@ -105,4 +106,17 @@ func (d *ArticleDBClient) GetArticleRowByTagAndDate(tag, date string) (*[]models
 	}
 
 	return &articles, nil
+}
+
+//DeleteArticleByID deletes an article by id
+func (d *ArticleDBClient) DeleteArticleByID(id int) error {
+	query := "DELETE FROM ARTICLES WHERE id=$1;"
+	// delete values
+	_, err := d.DB.Exec(query, id)
+	if err != nil {
+		d.Logger.Errorf("DeleteArticleByID :: error deleting row ID %d : %v", id, err)
+		return err
+	}
+	d.Logger.Infof("DeleteArticleByID :: successfully deleted id %d", id)
+	return nil
 }
