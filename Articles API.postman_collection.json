@@ -1,0 +1,237 @@
+{
+	"info": {
+		"_postman_id": "1b49c3b0-3086-4508-9805-63eab75c1617",
+		"name": "Articles API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21289621"
+	},
+	"item": [
+		{
+			"name": "CreateArticle",
+			"item": [
+				{
+					"name": "T1 - Create new article with valid data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"CreateArticle\", ()=> {\r",
+									"    let jsonData = pm.response.json();\r",
+									"    pm.response.to.have.status(201)\r",
+									"\r",
+									"    pm.expect(jsonData).to.have.property('id');\r",
+									"    pm.expect(jsonData).to.have.property('title');\r",
+									"    pm.expect(jsonData).to.have.property('date');\r",
+									"    pm.expect(jsonData).to.have.property('body');\r",
+									"    pm.expect(jsonData).to.have.property('tags');\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"latest science shows that potato chips are better for you than sugar\",\r\n  \"date\" : \"2016-09-24\",\r\n  \"body\" : \"some text, potentially containing simple markup about how potato chips are great\",\r\n  \"tags\" : [\"health\", \"fitness\", \"science\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/articles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"articles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "T2 - Create new article with invalid date returns correct error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"CreateArticle\", ()=> {\r",
+									"    let jsonData = pm.response.json();\r",
+									"    pm.response.to.have.status(400)\r",
+									"\r",
+									"    pm.expect(jsonData).to.have.property('Message');\r",
+									"    pm.expect(jsonData).to.have.property('Status');\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"latest science shows that potato chips are better for you than sugar\",\r\n  \"date\" : \"2016-09-22-1212\",\r\n  \"body\" : \"some text, potentially containing simple markup about how potato chips are great\",\r\n  \"tags\" : [\"health\", \"fitness\", \"science\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/articles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"articles"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GetArticle",
+			"item": [
+				{
+					"name": "PRE - Create new article with valid data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"CreateArticle\", ()=> {\r",
+									"    let jsonData = pm.response.json();\r",
+									"    pm.response.to.have.status(201)\r",
+									"\r",
+									"    pm.expect(jsonData).to.have.property('id');\r",
+									"    pm.environment.set(\"ARTICLE_ID\", jsonData.id);\r",
+									"\r",
+									"    pm.expect(jsonData).to.have.property('title');\r",
+									"    pm.expect(jsonData).to.have.property('date');\r",
+									"    pm.expect(jsonData).to.have.property('body');\r",
+									"    pm.expect(jsonData).to.have.property('tags');\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"latest science shows that potato chips are better for you than sugar\",\r\n  \"date\" : \"2016-09-22\",\r\n  \"body\" : \"some text, potentially containing simple markup about how potato chips are great\",\r\n  \"tags\" : [\"health\", \"fitness\", \"science\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/articles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"articles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "T1 - Get article with a valid ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"GetArticle\", ()=> {\r",
+									"    let jsonData = pm.response.json();\r",
+									"    pm.response.to.have.status(200)\r",
+									"\r",
+									"    pm.expect(jsonData).to.have.property('id');\r",
+									"    pm.expect(jsonData).to.have.property('title');\r",
+									"    pm.expect(jsonData).to.have.property('date');\r",
+									"    pm.expect(jsonData).to.have.property('body');\r",
+									"    pm.expect(jsonData).to.have.property('tags');\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"latest science shows that potato chips are better for you than sugar\",\r\n  \"date\" : \"2016-09-22-1212\",\r\n  \"body\" : \"some text, potentially containing simple markup about how potato chips are great\",\r\n  \"tags\" : [\"health\", \"fitness\", \"science\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/articles/{{ARTICLE_ID}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"articles",
+								"{{ARTICLE_ID}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GetArticlesByTag",
+			"item": [
+				{
+					"name": "T1 - Get articles by tag on date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tags/blah1/2016-09-22",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"tags",
+								"blah1",
+								"2016-09-22"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "https://41fa-159-196-169-132.ngrok.io"
+		}
+	]
+}
