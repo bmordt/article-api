@@ -5,10 +5,20 @@ Assumptions
  - Docker is installed - for the spinning up a postgres instance
  - Golang is installed - I used go 1.16
 
+Whats in this repo?
+ - DockerFile to create a new postgres instance
+ - postgres DB init script can be found in `scripts/sql/init.sh`
+
+To initialise DB:
+ - Set DB env variables in the Dockerfile in folder `scripts/sql` as well as in the `init.sh`
+ - Have docker running
+ - Run the DB init script `scripts/sql/init.sh`
+    - **NOTE must be run before all tests are run for assertions on ID's returned in create test
+
 To run tests:
-`go test ./... -coverprofile=c.out`
-To view coverprofile:
-`go tool cover -html=c.out`
+ - Requires the DB env variables being set. Otherwise it defaults to set variables from the init script.
+ - Run tests: `go test ./... -coverprofile=c.out`
+ - To view coverprofile: `go tool cover -html=c.out`
 
 To install all dependencies:
 `go mod download`
