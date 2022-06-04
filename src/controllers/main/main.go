@@ -27,7 +27,7 @@ func newLogger() *logrus.Entry {
 		DisableTimestamp: false,
 	})
 	log := logrus.NewEntry(l).WithFields(logrus.Fields{
-		"Product": "BCPController",
+		"Product": "Aritcle-api",
 	})
 	return log
 }
